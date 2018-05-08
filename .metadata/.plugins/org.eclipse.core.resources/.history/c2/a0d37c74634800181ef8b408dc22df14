@@ -1,0 +1,112 @@
+	/*
+ * Asteroid.c
+ *
+ *  Created on: 18 apr. 2018
+ *      Author: fr0177ma-s
+ */
+#include "Asteroid.h"
+#include "vga.h"
+#include "math.h"
+
+void SpawnAsteroid(struct Asteroid *a, unsigned char Size)
+{
+	struct Asteroid tempo = *a;
+	tempo.moveX = tempo.speed * cos(tempo.moveAngle);
+	tempo.moveY = tempo.speed * sin(tempo.moveAngle);
+	if(Size == TINY){
+
+	}else if(Size == SMALL){
+		tempo.size = &AsteroidSmall;
+	}else if(Size == MEDIUM){
+		tempo.size = &AsteroidMedium;
+	}else if(Size == LARGE){
+		tempo.size = &AsteroidLarge;
+	}else{
+		tempo.size = &AsteroidXLarge;
+	}
+	drawCircle(tempo.x, tempo.y, tempo.size, COLOR_WHITE);
+	*a = tempo;
+}
+
+void MoveAsteroid(struct Asteroid *a)
+{
+	struct Asteroid tempo = *a;
+	drawCircle(tempo.x, tempo.y, tempo.size, COLOR_BLACK);
+	int char = *(tempo[0]);
+//	if(tempo.x > 6400 || tempo.x < -100){
+//		tempo.x = 640 + *(tempo.size[0]);
+//	}else if(tempo.x > 740){
+//		tempo.x = 0 - *(tempo.size[0]);
+//	}else{
+//		tempo.x += tempo.moveX;
+//	}
+//
+//	if(tempo.y > 4800 || tempo.y < -100){
+//		tempo.y = 480 + *(tempo.size[0]);
+//	}else if(tempo.y > 580){
+//		tempo.y = 0 - *(tempo.size[0]);
+//	}else{
+//		tempo.y += tempo.moveY;
+//	}
+
+	if((tempo.x - *(tempo.size[0])) < 0)
+	{
+		tempo.
+	}
+
+	drawCircle(tempo.x, tempo.y, tempo.size, COLOR_WHITE);
+	*a = tempo;
+}
+
+void collisionDetection (struct Asteroid *a,int x, int y, int length, int angle)
+{
+	struct Asteroid tempo = *a;
+	int distanceX = (x - tempo.x);
+	int distanceY = (y - tempo.y);
+	int radius = *(tempo.size[0]) + 15;
+	if(distanceX < radius || distanceY < radius){
+		//triangeln == cirkeln
+		int distance = distanceX*distanceX + distanceY*distanceY;
+		// *a.size[0] = radius of the circle, 15 length of player
+		if(distance < (radius*radius)){
+			drawSquare(0,0,100,100, COLOR_RED);
+		}
+	}
+//
+//	double rad = pi/180 * angle;
+//
+//	int x0 = (int)(x + length * cos(rad + pi/2));
+//	int y0 = (int)(y + length * sin(rad + pi/2));
+//
+//	int x1 = (int)(x + length * cos(rad + 5*pi/4));
+//	int y1 = (int)(y + length * sin(rad + 5*pi/4));
+//
+//	int x2 = (int)(x + length * cos(rad + 7*pi/4));
+//	int y2 = (int)(y + length * sin(rad + 7*pi/4));
+//
+//	struct Asteroid tempo = *a;
+//	// *a.size[0] = radius of the circle, 15 length of player
+//	int radius = (*(tempo.size[0])) * (*(tempo.size[0]));
+//
+//	int distanceX = abs(tempo.x - x0);
+//	int distanceY = abs(tempo.y - y0);
+//	long distance = distanceX*distanceX + distanceY*distanceY;
+//	if(distance <= radius){
+//		drawSquare(0,0,100,100, COLOR_RED);
+//	}
+//
+//	distanceX = abs(x1 - tempo.x);
+//	distanceY = abs(y1 - tempo.y);
+//	distance = distanceX*distanceX + distanceY*distanceY;
+//	if(distance < radius){
+//		drawSquare(0,0,100,100, COLOR_RED);
+//	}
+//
+//	distanceX = abs(x2 - tempo.x);
+//	distanceY = abs(y2 - tempo.y);
+//	distance = distanceX*distanceX + distanceY*distanceY;
+//	if(distance < radius){
+//		drawSquare(0,0,100,100, COLOR_RED);
+//	}
+}
+

@@ -1,0 +1,30 @@
+/*
+ * player.c
+ *
+ *  Created on: 25 apr. 2018
+ *      Author: su3003sv-s
+ */
+//
+//
+//unsigned int x,y, old_x, old_y;
+//unsigned char angle = 180, old_angle = 180;
+//char  speed = 0, acc = 3, maxSpeed = 12;
+//
+//void drawPlayer(unsigned int x0,y0,x1,y1,x2,y2){
+//	drawLine(x0,y0,x1,y1, COLOR_WHITE);
+//	drawLine(x2,y2,x1,y1, COLOR_WHITE);
+//	drawLine(x0,y0,x2,y2, COLOR_WHITE);
+//}
+//
+//void calculatePoints(){
+//	double rad = pi/180 * angle;
+//
+//	int x0 = (int)(startX + 15 * cos(rad + pi/2));
+//	int y0 = (int)(startY + 15 * sin(rad + pi/2));
+//
+//	int x1 = (int)(startX + 15 * cos(rad + 5*pi/4));
+//	int y1 = (int)(startY + 15 * sin(rad + 5*pi/4));
+//
+//	int x2 = (int)(startX + 15 * cos(rad + 7*pi/4));
+//	int y2 = (int)(startY + 15 * sin(rad + 7*pi/4));
+//}

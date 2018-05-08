@@ -1,0 +1,88 @@
+/*
+ * player.c
+ *
+ *  Created on: 25 apr. 2018
+ *      Author: su3003sv-s
+ */
+
+
+unsigned int x,y, old_x, old_y;
+unsigned char angle = 180, old_angle = 180;
+char  speed = 0, acc = 3, maxSpeed = 12;
+
+void drawPlayer(unsigned int x0,y0,x1,y1,x2,y2){
+	drawLine(x0,y0,x1,y1, COLOR_WHITE);
+	drawLine(x2,y2,x1,y1, COLOR_WHITE);
+	drawLine(x0,y0,x2,y2, COLOR_WHITE);
+}
+
+void calculatePoints(){
+	double rad = pi/180 * angle;
+
+	int x0 = (int)(startX + 15 * cos(rad + pi/2));
+	int y0 = (int)(startY + 15 * sin(rad + pi/2));
+
+	int x1 = (int)(startX + 15 * cos(rad + 5*pi/4));
+	int y1 = (int)(startY + 15 * sin(rad + 5*pi/4));
+
+	int x2 = (int)(startX + 15 * cos(rad + 7*pi/4));
+	int y2 = (int)(startY + 15 * sin(rad + 7*pi/4));
+}
+
+void updatePlayer(){
+	if(down == 1 || up == 1)
+	{
+		if(down == 1 && speed > -maxSpeed)
+		{
+			speed -= acc;
+		}
+		if(up == 1 && speed < maxSpeed)
+		{
+			speed += acc;
+		}
+	}
+	else
+	{
+		if(speed < 0)
+		{
+			speed += acc;
+		}
+		if(speed > 0)
+		{
+			speed -= acc;
+		}
+	}
+
+	if(left == 1)
+	{
+		angle -= 10;
+	}
+	else if(right == 1){
+		angle += 10;
+	}
+
+	double rad = pi/180 * (angle-90);
+	if(x > 6400){
+		x = 640;
+	}else if(x > 640){
+		x = 0;
+	}else{
+		x -=(int)(speed * (cos(rad)));
+	}
+	if(y > 4800){
+		y = 480;
+	}else if(y > 480){
+		y = 0;
+	}else{
+		y -=(int)(speed * (sin(rad)));
+	}
+
+	if(x != old_x || y != old_y || old_angle != angle){
+		drawTriangle(old_x, old_y, 15, old_angle, COLOR_BLACK);
+		drawTriangle(x,y, 15, angle, COLOR_BLUE);
+		old_x = x;
+		old_y = y;
+		old_angle = angle;
+
+	}
+}

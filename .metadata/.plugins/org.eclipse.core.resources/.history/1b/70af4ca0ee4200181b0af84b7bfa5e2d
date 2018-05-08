@@ -1,0 +1,17 @@
+/*
+ * Asteroid.c
+ *
+ *  Created on: 18 apr. 2018
+ *      Author: fr0177ma-s
+ */
+
+struct Assteroid
+{
+	int x, y, radius;
+};
+
+
+void SpawnAssteroid(int x, int y, int radius)
+{
+
+}

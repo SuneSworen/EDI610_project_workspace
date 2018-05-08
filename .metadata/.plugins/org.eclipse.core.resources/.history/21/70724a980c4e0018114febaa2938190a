@@ -1,0 +1,160 @@
+/*
+ * vga.c
+ *
+ *  Created on: 6 mars 2017
+ *      Author: eit-arj
+ */
+
+#include "vga.h"
+#include "math.h"
+#include <xil_types.h>
+
+void drawPixel(unsigned int x, unsigned int y, unsigned char color){
+	if(x>=0 && y >= 0 && x <= 640 && y <= 480){
+		unsigned int pixelAddress = y * VGA_WIDTH + x;
+		*VGA_BASE = (pixelAddress << 8) + color;
+	}
+}
+
+void drawSquare(unsigned int startX, unsigned int startY, unsigned int endX, unsigned int endY, unsigned char color){
+	int i, j;
+
+	for (i = startY; i <= endY; i++) {
+		for (j = startX; j <= endX; j++) {
+			drawPixel(j, i, color);
+		}
+	}
+}
+
+void createTriangle(){
+	int triangleNumbersX[72];
+	int triangleNumbersY[72];
+	for(int angle = 0, i = 0; angle <= 360 ;angle += 15, i+=3){
+		double rad = 0.01744444 * angle;
+
+		int x0 = (int)(15 * cos(rad + 1.57));
+		int y0 = (int)(15 * sin(rad + 1.57));
+
+		int x1 = (int)(15 * cos(rad + 3.925));
+		int y1 = (int)(15 * sin(rad + 3.925));
+
+		int x2 = (int)(15 * cos(rad + 5.495));
+		int y2 = (int)(15 * sin(rad + 5.495));
+		triangleNumbersX[i] = x0;
+		triangleNumbersX[i+1] = x1;
+		triangleNumbersX[i+2] = x2;
+		triangleNumbersY[i] = y0;
+		triangleNumbersY[i+1] = y1;
+		triangleNumbersY[i+2] = y2;
+	}
+
+}
+void drawTriangle(int x, int y,int angle, unsigned char color){
+
+	char i = ((angle/15)*3)%71;
+	char j = i+2;
+	char k= i+1;
+
+	if(angle==360){
+		drawLine(x+playerX[1],y+playerY[0],x+playerX[2],y+playerY[0], color);// right of the triangle
+		drawLine(x+playerX[2],y+playerY[0],x+playerX[0],y+playerY[1], color);// bottom of the triangle
+		drawLine(x+playerX[1],y+playerY[0],x+playerX[2],y+playerY[0], color);// left of the triangle
+	}
+
+	drawLine(x+playerX[i],y+playerY[i],x+playerX[k],y+playerY[k], color);// right of the triangle
+	drawLine(x+playerX[k],y+playerY[k],x+playerX[j],y+playerY[j], color);// bottom of the triangle
+	drawLine(x+playerX[j],y+playerY[j],x+playerX[i],y+playerY[i], color);// left of the triangle
+}
+
+//void drawTriangle(int startX, int startY, int angle, unsigned char color){
+//	double rad = 0.01744444 * angle;
+//
+//	int x0 = (int)(startX + 15 * cos(rad + 1.57));
+//	int y0 = (int)(startY + 15 * sin(rad + 1.57));
+//
+//	int x1 = (int)(startX + 15 * cos(rad + 3.925));
+//	int y1 = (int)(startY + 15 * sin(rad + 3.925));
+//
+//	int x2 = (int)(startX + 15 * cos(rad + 5.495));
+//	int y2 = (int)(startY + 15 * sin(rad + 5.495));
+//
+//	drawLine(x0,y0,x1,y1, color); // right of the triangle
+//	drawLine(x2,y2,x1,y1, color);  // bottom of the triangle
+//	drawLine(x0,y0,x2,y2, color);  // left of the triangle
+//}
+
+
+void DrawCircleWithLines(int x, int y, int8_t AsteroidArray[])
+{
+	for(int i = 0; i <= 28; i+=2)
+		{
+			drawLine(AsteroidArray[i] + x,AsteroidArray[i+1] + y,AsteroidArray[i+2] + x,AsteroidArray[i+3] + y, COLOR_WHITE);
+		}
+	//drawLine(AsteroidArray[0] + x,AsteroidArray[1] + y,AsteroidArray[29] + x,AsteroidArray[30] + y, COLOR_WHITE);
+}
+void createCircle(int radius)
+{
+	int16_t AsteroidNumbers[32];
+	double res = 360/15;
+
+	int j = 0;
+
+	for(double i = 0; i < 360; i += res)
+	{
+		int xx = (int)(radius * cos(i * 0.01744444));
+		int yy = (int)(radius * sin(i * 0.01744444));
+		AsteroidNumbers[j] = xx;
+		AsteroidNumbers[j + 1] = yy;
+		j+=2;
+	}
+	AsteroidNumbers[31] = radius;
+	AsteroidNumbers[32] = 0;
+
+}
+void drawCircle(int x, int y, int8_t AsteroidArray[], unsigned char color){
+	for(int i = 0; i <= 28; i+=2)
+		{
+			drawLine(AsteroidArray[i] + x,AsteroidArray[i+1] + y,AsteroidArray[i+2] + x,AsteroidArray[i+3] + y, color);
+		}
+}
+//void drawCircle(int x, int y, int radius, unsigned char color)
+//{
+//
+//	double res = 360/15;
+//	int oldx = (x + radius);
+//	int oldy = y;
+//	for(double i = 0; i < 360; i += res)
+//	{
+//		int xx = (int)(x + radius * cos(i * pi / 180));
+//		int yy = (int)(y + radius * sin(i * pi / 180));
+//
+//
+//		drawLine(oldx,oldy,xx,yy, color);
+//		oldx = xx;
+//		oldy = yy;
+//	}
+//	drawLine(oldx,oldy,x + radius,y, color);
+//
+//}
+
+void drawLine(int startX, int startY, int endX, int endY, unsigned char color)
+{
+  int dx = (int)fabs(endX - startX);
+  int sx = startX < endX ? 1 : -1;
+  int dy = -(int)fabs (endY - startY);
+  int sy = startY < endY ? 1 : -1;
+  int err = dx + dy, e2; /* error value e_xy */
+
+  for (;;){  /* loop */
+    drawPixel(startX,startY,color);
+    if (startX == endX && startY == endY) break;
+    e2 = 2 * err;
+    if (e2 >= dy) { err += dy; startX += sx; } /* e_xy+e_x > 0 */
+    if (e2 <= dx) { err += dx; startY += sy; } /* e_xy+e_y < 0 */
+  }
+}
+
+
+void clearScreen(unsigned char bgColor){
+	drawSquare(0,0,VGA_WIDTH-1,VGA_HEIGHT-1, bgColor);
+}

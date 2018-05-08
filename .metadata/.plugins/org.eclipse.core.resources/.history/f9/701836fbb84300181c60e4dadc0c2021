@@ -1,0 +1,36 @@
+
+/*
+ * Asteroid.h
+ *
+ *  Created on: 18 apr. 2018
+ *      Author: fr0177ma-s
+ */
+
+#ifndef SRC_ASTEROID_H_
+#define SRC_ASTEROID_H_
+
+
+//#include <xil_types.h>
+
+#define SMALL 	0
+#define MEDIUM	1
+#define LARGE	2
+#define XLARGE	3
+
+
+//int16_t AsteroidSmall[32];
+//int16_t AsteroidMedium[30];
+//int16_t AsteroidLarge[30];
+//int16_t AsteroidXLarge[30];
+
+struct Asteroid
+{
+	int x, y, speed, moveAngle, size, moveX, moveY;
+
+};
+
+extern void SpawnAsteroid(struct Asteroid *a);
+void MoveAsteroid(struct Asteroid *a);
+
+
+#endif /* SRC_ASTEROID_H_ */

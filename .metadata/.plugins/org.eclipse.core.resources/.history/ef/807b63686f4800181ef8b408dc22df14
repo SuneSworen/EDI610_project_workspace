@@ -1,0 +1,11 @@
+/*
+ * player.c
+ *
+ *  Created on: 25 apr. 2018
+ *      Author: su3003sv-s
+ */
+
+
+unsigned int x,y, old_x, old_y;
+unsigned char angle = 180, old_angle = 180;
+char  speed = 0, acc = 3, maxSpeed = 12;

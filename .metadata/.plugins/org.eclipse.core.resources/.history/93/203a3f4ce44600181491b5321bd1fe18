@@ -1,0 +1,118 @@
+/*
+ * vga.c
+ *
+ *  Created on: 6 mars 2017
+ *      Author: eit-arj
+ */
+
+#include "vga.h"
+#include "math.h"
+#include <xil_types.h>
+//double pi = 3.14159265358979;
+void drawPixel(unsigned int x, unsigned int y, unsigned char color){
+	unsigned int pixelAddress = y * VGA_WIDTH + x;
+	*VGA_BASE = (pixelAddress << 8) + color;
+}
+
+void drawSquare(unsigned int startX, unsigned int startY, unsigned int endX, unsigned int endY, unsigned char color){
+	int i, j;
+
+	for (i = startY; i <= endY; i++) {
+		for (j = startX; j <= endX; j++) {
+			drawPixel(j, i, color);
+		}
+	}
+}
+
+void drawTriangle(int startX, int startY, int length, int angle, unsigned char color){
+	double rad = pi/180 * angle;
+
+	int x0 = (int)(startX + length * cos(rad + pi/2));
+	int y0 = (int)(startY + length * sin(rad + pi/2));
+
+	int x1 = (int)(startX + length * cos(rad + 5*pi/4));
+	int y1 = (int)(startY + length * sin(rad + 5*pi/4));
+
+	int x2 = (int)(startX + length * cos(rad + 7*pi/4));
+	int y2 = (int)(startY + length * sin(rad + 7*pi/4));
+
+	drawLine(x0,y0,x1,y1, color);
+	drawLine(x2,y2,x1,y1, color);
+	drawLine(x0,y0,x2,y2, color);
+}
+
+
+void DrawCircleWithLines(int x, int y, int8_t AsteroidArray[])
+{
+	for(int i = 0; i <= 28; i+=2)
+		{
+			drawLine(AsteroidArray[i] + x,AsteroidArray[i+1] + y,AsteroidArray[i+2] + x,AsteroidArray[i+3] + y, COLOR_WHITE);
+		}
+	//drawLine(AsteroidArray[0] + x,AsteroidArray[1] + y,AsteroidArray[29] + x,AsteroidArray[30] + y, COLOR_WHITE);
+}
+void createCircle(int radius)
+{
+	int16_t AsteroidNumbers[32];
+	double res = 360/15;
+
+	int j = 0;
+
+	for(double i = 0; i < 360; i += res)
+	{
+		int xx = (int)(radius * cos(i * pi / 180));
+		int yy = (int)(radius * sin(i * pi / 180));
+		AsteroidNumbers[j] = xx;
+		AsteroidNumbers[j + 1] = yy;
+		j+=2;
+	}
+	AsteroidNumbers[31] = radius;
+	AsteroidNumbers[32] = 0;
+
+}
+void drawCircle(int x, int y, int8_t AsteroidArray[]){
+	for(int i = 0; i <= 28; i+=2)
+		{
+			drawLine(AsteroidArray[i] + x,AsteroidArray[i+1] + y,AsteroidArray[i+2] + x,AsteroidArray[i+3] + y, COLOR_WHITE);
+		}
+}
+//void drawCircle(int x, int y, int radius, unsigned char color)
+//{
+//
+//	double res = 360/15;
+//	int oldx = (x + radius);
+//	int oldy = y;
+//	for(double i = 0; i < 360; i += res)
+//	{
+//		int xx = (int)(x + radius * cos(i * pi / 180));
+//		int yy = (int)(y + radius * sin(i * pi / 180));
+//
+//
+//		drawLine(oldx,oldy,xx,yy, color);
+//		oldx = xx;
+//		oldy = yy;
+//	}
+//	drawLine(oldx,oldy,x + radius,y, color);
+//
+//}
+
+void drawLine(int startX, int startY, int endX, int endY, unsigned char color)
+{
+  int dx = (int)fabs(endX - startX);
+  int sx = startX < endX ? 1 : -1;
+  int dy = -(int)fabs (endY - startY);
+  int sy = startY < endY ? 1 : -1;
+  int err = dx + dy, e2; /* error value e_xy */
+
+  for (;;){  /* loop */
+    drawPixel(startX,startY,color);
+    if (startX == endX && startY == endY) break;
+    e2 = 2 * err;
+    if (e2 >= dy) { err += dy; startX += sx; } /* e_xy+e_x > 0 */
+    if (e2 <= dx) { err += dx; startY += sy; } /* e_xy+e_y < 0 */
+  }
+}
+
+
+void clearScreen(unsigned char bgColor){
+	drawSquare(0,0,VGA_WIDTH-1,VGA_HEIGHT-1, bgColor);
+}

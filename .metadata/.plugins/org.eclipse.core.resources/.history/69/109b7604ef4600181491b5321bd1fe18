@@ -1,0 +1,56 @@
+	/*
+ * Asteroid.c
+ *
+ *  Created on: 18 apr. 2018
+ *      Author: fr0177ma-s
+ */
+#include "Asteroid.h"
+#include "vga.h"
+#include "math.h"
+
+void SpawnAsteroid(struct Asteroid *a, unsigned char Size)
+{
+	struct Asteroid tempo = *a;
+	tempo.moveX = tempo.speed * cos(tempo.moveAngle);
+	tempo.moveY = tempo.speed * sin(tempo.moveAngle);
+//	if(tempo.x - tempo.size < 0)
+//	{
+//		tempo.x += tempo.size;
+//	}
+//	if(tempo.x + tempo.size > VGA_WIDTH)
+//	{
+//		tempo.x -= tempo.size;
+//	}
+//	if(tempo.y + tempo.size > VGA_HEIGHT)
+//	{
+//		tempo.y -= tempo.size;
+//	}
+//	if(tempo.y - tempo.size < 0)
+//	{
+//		tempo.y += tempo.size;
+//	}
+	if(Size == TINY){
+
+	}else if(Size == SMALL){
+		tempo.size = &AsteroidSmall;
+	}else if(Size == MEDIUM){
+		tempo.size = &AsteroidMedium;
+	}else if(Size == LARGE){
+		tempo.size = &AsteroidLarge;
+	}else{
+		tempo.size = &AsteroidXLarge;
+	}
+	drawCircle(tempo.x, tempo.y, tempo.size, COLOR_WHITE);
+	*a = tempo;
+}
+
+void MoveAsteroid(struct Asteroid *a)
+{
+	struct Asteroid tempo = *a;
+	drawCircle(tempo.x, tempo.y, tempo.size, COLOR_BLACK);
+	tempo.x += tempo.moveX;
+	tempo.y += tempo.moveY;
+	drawCircle(tempo.x, tempo.y, tempo.size, COLOR_WHITE);
+	*a = tempo;
+}
+

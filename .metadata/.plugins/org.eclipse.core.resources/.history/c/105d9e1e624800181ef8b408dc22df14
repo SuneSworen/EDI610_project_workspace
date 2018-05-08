@@ -1,0 +1,295 @@
+/* EDI610 Hardware Platform 2017 demo
+
+ This application make use of the following devices of the hardware platform:
+ 		-- Buttons Device
+		-- Seven Segment Controller
+		-- Interrupt Controller
+		-- VGA Controller
+		-- Keyboard Controller
+
+		The Buttons Device and Keyboard Controller are configured to generate interrupts.
+		Initially the screen is painted black with a blue bar at the top and a red bar at the
+		bottom. Then a single pixel is set to green. The coordinates of the green pixel is stored in
+		two global variables, x and y.
+
+		Once a new scan code is received from the keyboard the interrupt handler will check if
+		any of the arrow keys where pressed. If so the coordinates of the green pixel will be changed
+		according to the direction indicated by the arrow pressed. Note that the actual redrawing of
+		the green pixel is done in the main function. The purpose of this functionality is to demonstrate
+		how the VGA controller is used to draw things on a display.
+
+		Once any of the five pushbuttons is pressed or released an interrupt is generated. Each time
+		the interrupt handler for the buttons is executed a counter, bounceCounter, is incremented.
+		In the main function the value of bounceCounter is displayed on the seven segment displays.
+		The purpose of including this part is to demonstrate how to set up interrupts for the Buttons
+		Device. And also to highlight potential problems caused of button bouncing.
+
+		During the project you are free to make any modifications in the supplied code.
+
+		WARNING: Keep in mind that any new source file added to the project should be placed under the "src" folder.
+				 If you by mistake create a file in another folder:
+					1: Move the file to the "src" folder.
+					2: Delete "subdir.mk" located in the "Debug" folder. */
+
+
+#include "buttons.h"
+#include "displays.h"
+#include "vga.h"
+#include "keyboard.h"
+#include "interrupt_controller.h"
+#include "microBlaze.h"
+#include "timers.h"
+#include "Asteroid.h"
+#include "math.h"
+#define TRUE	1
+#define FALSE	0
+
+/*
+ * Global variables
+ */
+unsigned int x,y, old_x, old_y;
+unsigned char color = 0;
+unsigned int bounceCounter = 0;
+unsigned int keyCode = 0;
+int angle = 180, old_angle = 180, counter = 0;
+unsigned int old_keyCode;
+char  speed = 0, acc = 3, maxSpeed = 12;
+unsigned char up, down, left, right;
+
+struct Asteroid asteroidArray[0];
+
+volatile char update_screen = FALSE;
+
+
+/*
+ * Function prototypes
+ */
+void buttonsInterruptHandler() __attribute__((fast_interrupt));
+void keyboardInterruptHandler() __attribute__((fast_interrupt));
+void ISR_timer1() __attribute__ ((fast_interrupt));
+void ISR_timer2() __attribute__ ((fast_interrupt));
+void setup();
+void updatePlayer();
+void updateAstroids();
+
+
+
+
+
+int main(void){
+	setup();
+	drawCircle(0,200,&astroidXLarge[],COLOR_BLACK);
+	initTimer1(4900000);
+	initTimer2(0);
+	enableTimer1();
+	while(1==1){
+		if(update_screen){
+			enableTimer2();
+			updatePlayer();
+			updateAstroids();
+			update_screen = FALSE;
+		}
+	}
+}
+
+void setup(){
+	/*
+	 * Configure data direction for I/O devices
+	 */
+	*BUTTONS_CONTROL = 0x1F;
+
+	/*
+	 * Draw initial screen
+	 */
+	x = VGA_WIDTH/2;
+	y = VGA_HEIGHT/2;
+	old_x = x;
+	old_y = y;
+	clearScreen(COLOR_BLACK);
+
+	for(int i = 0; i < (sizeof(asteroidArray) / sizeof(asteroidArray[0])); i++)
+		{
+			asteroidArray[i].x = i * 20 + 50;
+			asteroidArray[i].y = i * 15 + 23;
+			asteroidArray[i].speed = (i + 1) * 2;
+			asteroidArray[i].moveAngle = (i + 1);
+			SpawnAsteroid(&asteroidArray[i],(SMALL + (i % 4)));
+
+		}
+
+
+	/*
+	 * Configure interrupts for the five push buttons
+	 */
+	*BUTTONS_IER = 0x01;
+	*BUTTONS_GIER = 1 << 31;
+	*BUTTONS_ISR &= 0x01; // writing ones toggle the value of corresponding bits
+
+	/*
+	 * Configure keyboard controller
+	 */
+	*KB_CTRL = (1 << 1) | (1 << 0) | (1 << 2);
+
+	/*
+	 * Configure interrupt controller
+	 */
+	*IVAR0 = (unsigned int) buttonsInterruptHandler;
+	*IVAR1 = (unsigned int) ISR_timer1;
+	*IVAR2 = (unsigned int) ISR_timer2;
+	*IVAR4 = (unsigned int) keyboardInterruptHandler;
+	*MER |= 0b11;
+	*IER = 0b10111;
+	*IAR = 0b10111;
+
+	/*
+	 * Enable interrupts for processor
+	 */
+	enableMicroBlazeInterrupts();
+	updatePlayer();
+}
+
+void buttonsInterruptHandler(){
+	// increment button interrupt counter. Note that a single press of a button can generate
+	// multiple interrupts due to bouncing.
+	bounceCounter = bounceCounter + 1;
+
+	// Acknowledge the interrupt. Note that BUTTON_ISR is toggle on write!
+	*BUTTONS_ISR &= 0x01;
+	*IAR = 1 << BUTTONS_IRQ;
+
+}
+
+
+void keyboardInterruptHandler(){
+		keyCode = *KB_DATA;
+		if(keyCode == 0x75)
+		{
+			if(old_keyCode != 0xf0)
+			{
+				up = 1;
+			}else
+			{
+				up = 0;
+			}
+		}
+		if(keyCode == 0x72)
+		{
+			if(old_keyCode != 0xf0)
+			{
+				down = 1;
+			}else
+			{
+				down = 0;
+			}
+		}
+		if(keyCode == 0x74)
+		{
+
+			if(old_keyCode != 0xf0)
+			{
+				right = 1;
+			}else
+			{
+				right = 0;
+			}
+		}
+		if(keyCode == 0x6B)
+		{
+			if(old_keyCode != 0xf0)
+			{
+				left = 1;
+			}else
+			{
+				left = 0;
+			}
+		}
+		old_keyCode = keyCode;
+	// Acknowledge the interrupt
+	*KB_CTRL |= (1 << 2);
+	*IAR = 1 << KEYBOARD_IRQ;
+}
+
+void updatePlayer(){
+	if(down == 1 || up == 1)
+	{
+		if(down == 1 && speed > -maxSpeed)
+		{
+			speed -= acc;
+		}
+		if(up == 1 && speed < maxSpeed)
+		{
+			speed += acc;
+		}
+	}
+	else
+	{
+		if(speed < 0)
+		{
+			speed += acc;
+		}
+		if(speed > 0)
+		{
+			speed -= acc;
+		}
+	}
+
+	if(left == 1)
+	{
+		angle -= 10;
+	}
+	else if(right == 1){
+		angle += 10;
+	}
+
+	double rad = pi/180 * (angle-90);
+	if(x > 6400){
+		x = 640;
+	}else if(x > 640){
+		x = 0;
+	}else{
+		x -=(int)(speed * (cos(rad)));
+	}
+	if(y > 4800){
+		y = 480;
+	}else if(y > 480){
+		y = 0;
+	}else{
+		y -=(int)(speed * (sin(rad)));
+	}
+
+	if(x != old_x || y != old_y || old_angle != angle){
+		drawTriangle(old_x, old_y, 15, old_angle, COLOR_BLACK);
+		drawTriangle(x,y, 15, angle, COLOR_BLUE);
+		old_x = x;
+		old_y = y;
+		old_angle = angle;
+
+	}
+}
+
+void ISR_timer1() {
+
+	static volatile int timer_count = 0;
+	timer_count++;
+	displayNumber(timer_count);
+	update_screen = TRUE;
+	*TIMER1_CTRL|=(1<<8);
+	*IAR=0b10;
+
+}
+
+void ISR_timer2() {
+
+	*TIMER2_CTRL|=(1<<8);
+	*IAR=0b100;
+
+}
+
+void updateAstroids(){
+	for(int i = 0; i < (sizeof(asteroidArray) / sizeof(asteroidArray[0])); i++)
+	{
+		MoveAsteroid(&asteroidArray[i]);
+		collisionDetection(&asteroidArray[i],x,y,15,angle);
+	}
+}
+
