@@ -415,7 +415,7 @@ void ISR_timer2() {
 		do{ // denna whilen fungerar rätt dåligt
 			seed = *TIMER1_CR % *TIMER2_CR;
 			SpawnAsteroid(&asteroidArray[nbrOfAstroids], seed, x, y);
-		} while(&asteroidArray[nbrOfAstroids].x < (x + 400) && &asteroidArray[nbrOfAstroids].x > (x-400) && &asteroidArray[nbrOfAstroids].y < (y + 400) && &asteroidArray[nbrOfAstroids].y > (y-400));
+		} while(asteroidArray[nbrOfAstroids].x < (x + 150) && asteroidArray[nbrOfAstroids].x > (x-150) && asteroidArray[nbrOfAstroids].y < (y + 150) && asteroidArray[nbrOfAstroids].y > (y-150));
 		nbrOfAstroids++;
 		*LED_DATA = nbrOfAstroids;
 		displayNumber(nbrOfAstroids);
@@ -533,11 +533,11 @@ int8_t detectLaserCollision(int x, int y)
 }
 
 
-//void destroyAsteroid(struct Asteroid *a)
-//{
-//	a->alive = FALSE;
-//	drawCircle(a->x, a->y, a->size, COLOR_BLACK);
-//}
+void destroyAsteroid(struct Asteroid *a)
+{
+	a->alive = FALSE;
+	drawCircle(a->x, a->y, a->size, COLOR_BLACK);
+}
 
 
 /*void spawnSmallerAsteroids(int8_t size)

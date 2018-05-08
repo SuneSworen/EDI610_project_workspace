@@ -304,3 +304,13 @@ java.lang.RuntimeException: Error stopping at main.
 10:57:39 INFO  : FPGA configured successfully with bitstream "C:/Users/su3003sv-s/EDI610_project_workspace/mcu_wrapper_hw_platform_0/download.bit"
 10:57:53 INFO  : Processor reset is completed for microblaze_0
 11:10:34 ERROR : Unexpected error while parsing XMD response ?: com.google.gson.JsonSyntaxException: com.google.gson.stream.MalformedJsonException: invalid number or unquoted string near 
+11:14:26 INFO  : Launching XSDB server: xsdb.bat -interactive C:\Users\su3003sv-s\EDI610_project_workspace\temp_xsdb_launch_script.tcl
+11:14:28 INFO  : XSDB server has started successfully.
+11:15:16 INFO  : Processor reset is completed for microblaze_0
+11:24:20 INFO  : microblaze_0 Processor is in use. Please stop existing Run or Debug sessions before launching.
+11:24:21 INFO  : Processor reset is completed for microblaze_0
+11:25:00 INFO  : microblaze_0 Processor is in use. Please stop existing Run or Debug sessions before launching.
+11:25:02 INFO  : Processor reset is completed for microblaze_0
+11:25:11 INFO  : Processor reset is completed for microblaze_0
+11:25:13 INFO  : microblaze_0 Processor is in use. Please stop existing Run or Debug sessions before launching.
+11:25:15 INFO  : Processor reset is completed for microblaze_0

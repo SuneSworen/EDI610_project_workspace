@@ -55,7 +55,7 @@ void SpawnAsteroid(struct Asteroid *a, unsigned char seed, unsigned int x, unsig
 	tempo.moveX = tempo.speed * cos(tempo.moveAngle);
 	tempo.moveY = tempo.speed * sin(tempo.moveAngle);
 
-	drawCircle(tempo.x, tempo.y, tempo.size, COLOR_WHITE);
+//	drawCircle(tempo.x, tempo.y, tempo.size, COLOR_WHITE);
 	*a = tempo;
 }
 
