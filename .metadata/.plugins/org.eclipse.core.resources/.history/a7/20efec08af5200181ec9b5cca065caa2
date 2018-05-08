@@ -1,0 +1,607 @@
+/* EDI610 Hardware Platform 2017 demo
+
+ This application make use of the following devices of the hardware platform:
+ 		-- Buttons Device
+		-- Seven Segment Controller
+		-- Interrupt Controller
+		-- VGA Controller
+		-- Keyboard Controller
+
+		The Buttons Device and Keyboard Controller are configured to generate interrupts.
+		Initially the screen is painted black with a blue bar at the top and a red bar at the
+		bottom. Then a single pixel is set to green. The coordinates of the green pixel is stored in
+		two global variables, x and y.
+
+		Once a new scan code is received from the keyboard the interrupt handler will check if
+		any of the arrow keys where pressed. If so the coordinates of the green pixel will be changed
+		according to the direction indicated by the arrow pressed. Note that the actual redrawing of
+		the green pixel is done in the main function. The purpose of this functionality is to demonstrate
+		how the VGA controller is used to draw things on a display.
+
+		Once any of the five pushbuttons is pressed or released an interrupt is generated. Each time
+		the interrupt handler for the buttons is executed a counter, bounceCounter, is incremented.
+		In the main function the value of bounceCounter is displayed on the seven segment displays.
+		The purpose of including this part is to demonstrate how to set up interrupts for the Buttons
+		Device. And also to highlight potential problems caused of button bouncing.
+
+		During the project you are free to make any modifications in the supplied code.
+
+		WARNING: Keep in mind that any new source file added to the project should be placed under the "src" folder.
+				 If you by mistake create a file in another folder:
+					1: Move the file to the "src" folder.
+					2: Delete "subdir.mk" located in the "Debug" folder. */
+
+
+#include "buttons.h"
+#include "address_mapping.h"
+#include "displays.h"
+#include "vga.h"
+#include "keyboard.h"
+#include "interrupt_controller.h"
+#include "microBlaze.h"
+#include "timers.h"
+#include "Asteroid.h"
+#include "math.h"
+#include "numerals.h"
+#define TRUE	1
+#define FALSE	0
+#define START   0
+#define GAME    1
+#define LOSE   2
+
+/*
+ * Global variables
+ */
+unsigned int x,y, old_x, old_y;
+unsigned char color = 0;
+unsigned int bounceCounter = 0;
+unsigned int keyCode = 0;
+int angle = 0, old_angle = 0;
+unsigned int old_keyCode;
+char  speed = 0, acc = 3, maxSpeed = 12, numberOfAstroids;
+unsigned char up, down, left, right, enter, reset = 0,nbrOfAstroids = 0, max_nbrOfAstroids;
+struct GunShot gun1[3];
+int gunShot = 0;
+char update_shoot = FALSE;
+char const title[] = {'a','s','t','r', 'o','i','d','s'};
+char const newGame[] = {'n','e','w',' ', 'g','a','m','e'};
+char const leaderboard[] = {'l','e','a','d', 'e','r','b','o','a','r','d'};
+unsigned char currentButton = 0, oldButton = 1;
+
+struct Asteroid asteroidArray[500];
+int asteroidArraySize;
+
+volatile char update_screen = FALSE;
+char current_screen = START;
+
+/*
+ * Function prototypes
+ */
+void buttonsInterruptHandler() __attribute__((fast_interrupt));
+void keyboardInterruptHandler() __attribute__((fast_interrupt));
+void ISR_timer1() __attribute__ ((fast_interrupt));
+void ISR_timer2() __attribute__ ((fast_interrupt));
+void setup();
+void game_setup();
+char numberOfSwitches();
+void updatePlayer();
+void updateAstroids();
+
+
+
+
+
+int main(void){
+	setup();
+	initTimer1(4900000);
+	enableTimer1();
+	initTimer2(100000000);
+
+	while(1==1){
+		if(update_screen == TRUE){
+			if(reset == TRUE){
+				game_setup();
+				current_screen = GAME;
+				reset = FALSE;
+				enableTimer2();
+			}
+			if(current_screen == GAME){
+				updatePlayer();
+				updateAstroids();
+				shootGun1();
+			}else if(current_screen == START){
+				drawString(title, 8, 110, 65, 100, COLOR_WHITE);
+				if(oldButton == currentButton){
+					if(currentButton == 0){
+						drawSquare(205,245,390,285,COLOR_WHITE);
+						drawString(newGame, 8, 30, 210, 250, COLOR_BLACK);
+						drawString(leaderboard, 11, 30, 180, 300, COLOR_WHITE);
+						if(enter == TRUE){
+								current_screen = GAME;
+								reset = TRUE;
+								enter = FALSE;
+						}
+					}else{
+						drawSquare(175,295,430,335,COLOR_WHITE);
+						drawString(newGame, 8, 30, 210, 250, COLOR_WHITE);
+						drawString(leaderboard, 11, 30, 180, 300, COLOR_BLACK);
+						if(enter == TRUE){
+							enter = FALSE;
+						}
+					}
+				}
+				if(up == TRUE && currentButton > 0){
+					currentButton --;
+				}else if(down == TRUE){
+					currentButton ++;
+				}
+			}else{
+				drawSquare(220,140,420,340,COLOR_RED);
+				if(down == TRUE){
+					clearScreen(COLOR_BLACK);
+					setup();
+					current_screen = START;
+				}
+			}
+			update_screen = FALSE;
+		}
+	}
+}
+
+char numberOfSwitches(){
+	int switches = *SWITCHES_DATA;
+	char count = 0;
+	for(char i = 16;i >= 0;i--){
+		if(((switches >> i)& 1) == 1){
+			count +=2;
+		}
+	}
+
+	return count;
+}
+
+void game_setup(){
+	clearScreen(COLOR_BLACK);
+	max_nbrOfAstroids = numberOfSwitches();
+	asteroidArraySize = (sizeof(asteroidArray) / sizeof(asteroidArray[0]));
+	nbrOfAstroids=0;
+	x = VGA_WIDTH/2;
+	y = VGA_HEIGHT/2;
+	old_x = x;
+	old_y = y;
+
+	for(int i = 0; i < (sizeof(gun1) / sizeof(gun1[0])); i++)
+	{
+		gun1[i].exists = FALSE;
+	}
+
+//	int pos = 0;
+//	for(int i = 0; i <= numberOfAstroids; i++)
+//		{
+//			asteroidArray[i].x = 150;
+//			asteroidArray[i].y = 150;
+//			asteroidArray[i].moveAngle = (i + 1);
+//			SpawnAsteroid(&asteroidArray[i],(LARGE));
+//		}
+}
+
+void setup(){
+	/*
+	 * Configure data direction for I/O devices
+	 */
+	*BUTTONS_CONTROL = 0x1F;
+
+	/*
+	 * Draw initial screen
+	 */
+	clearScreen(COLOR_BLACK);
+
+
+
+
+	/*
+	 * Configure interrupts for the five push buttons
+	 */
+	*BUTTONS_IER = 0x01;
+	*BUTTONS_GIER = 1 << 31;
+	*BUTTONS_ISR &= 0x01; // writing ones toggle the value of corresponding bits
+
+	/*
+	 * Configure keyboard controller
+	 */
+	*KB_CTRL = (1 << 1) | (1 << 0) | (1 << 2);
+
+	/*
+	 * Configure interrupt controller
+	 */
+	*IVAR0 = (unsigned int) buttonsInterruptHandler;
+	*IVAR1 = (unsigned int) ISR_timer1;
+	*IVAR2 = (unsigned int) ISR_timer2;
+	*IVAR4 = (unsigned int) keyboardInterruptHandler;
+	*MER |= 0b11;
+	*IER = 0b10111;
+	*IAR = 0b10111;
+
+	/*
+	 * Enable interrupts for processor
+	 */
+	enableMicroBlazeInterrupts();
+}
+
+void buttonsInterruptHandler(){
+	// increment button interrupt counter. Note that a single press of a button can generate
+	// multiple interrupts due to bouncing.
+	bounceCounter = bounceCounter + 1;
+	if(current_screen == GAME){
+		if(*BUTTONS_DATA==MIDDLE){
+			clearScreen(COLOR_BLACK);
+			current_screen = START;
+		}
+		else if(*BUTTONS_DATA==RIGHT){
+			reset = TRUE;
+		}
+
+	}else if(current_screen == LOSE){
+		if(*BUTTONS_DATA==MIDDLE){
+			clearScreen(COLOR_BLACK);
+			current_screen = START;
+		}
+		else if(*BUTTONS_DATA==RIGHT){
+			reset = TRUE;
+		}
+	}else{
+		if(*BUTTONS_DATA==RIGHT){
+			reset = TRUE;
+		}
+	}
+
+
+	// Acknowledge the interrupt. Note that BUTTON_ISR is toggle on write!
+	*BUTTONS_ISR &= 0x01;
+	*IAR = 1 << BUTTONS_IRQ;
+
+}
+
+
+void keyboardInterruptHandler(){
+		keyCode = *KB_DATA;
+		if(keyCode == 0x75)
+		{
+			if(old_keyCode != 0xf0)
+			{
+				up = 1;
+			}else
+			{
+				up = 0;
+			}
+		}else if(keyCode == 0x72)
+		{
+			if(old_keyCode != 0xf0)
+			{
+				down = 1;
+			}else
+			{
+				down = 0;
+			}
+		}else if(keyCode == 0x74)
+		{
+
+			if(old_keyCode != 0xf0)
+			{
+				right = 1;
+			}else
+			{
+				right = 0;
+			}
+		}else if(keyCode == 0x6B)
+		{
+			if(old_keyCode != 0xf0)
+			{
+				left = 1;
+			}else
+			{
+				left = 0;
+			}
+		}else if(keyCode == 0x1d)
+		{
+			if(old_keyCode == 0xf0)
+			{
+				keyboardPressForShot();
+
+			}
+		}else if(keyCode == 0x5a){
+			if(old_keyCode == 0xf0){
+				enter = TRUE;
+			}else{
+				enter = FALSE;
+			}
+		}
+
+		old_keyCode = keyCode;
+	// Acknowledge the interrupt
+	*KB_CTRL |= (1 << 2);
+	*IAR = 1 << KEYBOARD_IRQ;
+}
+
+void updatePlayer(){
+	if(down == 1 || up == 1)
+	{
+		if(down == 1 && speed > -maxSpeed)
+		{
+			speed -= acc;
+		}
+		if(up == 1 && speed < maxSpeed)
+		{
+			speed += acc;
+		}
+	}
+	else
+	{
+		if(speed < 0)
+		{
+			speed += acc;
+		}
+		if(speed > 0)
+		{
+			speed -= acc;
+		}
+	}
+
+	if(left == 1)
+	{
+		if(angle > 0){
+			angle-=15;
+		}else{
+			angle = 345;
+		}
+
+	}
+	else if(right == 1){
+		if(angle < 345){
+			angle+=15;
+		}else{
+			angle = 0;
+		}
+	}
+
+	double rad = pi/180 * (angle-90);
+	if(x > 6400){
+		x = 640;
+	}else if(x > 640){
+		x = 0;
+	}else{
+		x -=(int)(speed * (cos(rad)));
+	}
+	if(y > 4800){
+		y = 480;
+	}else if(y > 480){
+		y = 0;
+	}else{
+		y -=(int)(speed * (sin(rad)));
+	}
+
+	if(x != old_x || y != old_y || old_angle != angle){
+//		drawTriangle(old_x, old_y, 15, old_angle, COLOR_BLACK);
+//		drawTriangle(x,y, 15, angle, COLOR_WHITE);
+		drawTriangle(old_x, old_y, old_angle, COLOR_BLACK);
+		drawTriangle(x,y, angle, COLOR_WHITE);
+		old_x = x;
+		old_y = y;
+		old_angle = angle;
+
+	}
+}
+
+void ISR_timer1() {
+
+	static volatile int timer_count = 0;
+	timer_count++;
+
+	update_screen = TRUE;
+	update_shoot++;
+
+	*TIMER1_CTRL|=(1<<8);
+	*IAR=0b10;
+
+}
+
+//void ISR_timer2() {
+//
+//	int posX = 0;
+//	int posY = 0;
+//
+//	do{
+//		posX = 100 + *TIMER1_CR % 440;
+//		posY = 100 + *TIMER1_CR % 280;
+//	}while(posX < (x + 200) && posX > (x-200) && posY < (y + 200) && posY > (y-200));
+//
+//	if(nbrOfAstroids < max_nbrOfAstroids){
+//		asteroidArray[nbrOfAstroids].x = posX;
+//		asteroidArray[nbrOfAstroids].y = posY;
+//		asteroidArray[nbrOfAstroids].moveAngle = (nbrOfAstroids + 1);
+//		SpawnAsteroid(&asteroidArray[nbrOfAstroids],(SMALL));
+//		nbrOfAstroids++;
+//		*LED_DATA = nbrOfAstroids;
+//	}
+//	*TIMER2_CTRL|=(1<<8);
+//	*IAR=0b100;
+//
+//}
+void ISR_timer2() {
+	int seed;
+	if(nbrOfAstroids < max_nbrOfAstroids){
+		do{ // denna whilen fungerar rätt dåligt
+			seed = *TIMER1_CR % *TIMER2_CR;
+			SpawnAsteroid(&asteroidArray[nbrOfAstroids], seed, x, y);
+		} while(asteroidArray[nbrOfAstroids].x < (x + 150) && asteroidArray[nbrOfAstroids].x > (x-150) && asteroidArray[nbrOfAstroids].y < (y + 150) && asteroidArray[nbrOfAstroids].y > (y-150));
+		nbrOfAstroids++;
+		*LED_DATA = nbrOfAstroids;
+		displayNumber(nbrOfAstroids);
+	}
+	*TIMER2_CTRL|=(1<<8);
+	*IAR=0b100;
+}
+
+void updateAstroids(){
+	for(int i = 0; i < nbrOfAstroids; i++)
+	{
+		MoveAsteroid(&asteroidArray[i]);
+//		MoveAsteroidWithoutBounce(&asteroidArray[i]);
+		if(collisionDetection(&asteroidArray[i],x,y,15,angle) == TRUE){
+			current_screen = LOSE;
+			clearScreen(COLOR_BLACK);
+			drawSquare(0,0,20,20,COLOR_RED);
+			break;
+		}
+		else{
+			drawSquare(0,0,20,20,COLOR_GREEN);
+		}
+	}
+}
+
+void keyboardPressForShot()
+{
+	double rad = pi/180 * angle;
+	int x0 = (int)(x + 15 * cos(rad + pi/2));
+	int y0 = (int)(y + 15 * sin(rad + pi/2));
+	createShot(x0, y0, 15, 15, angle);
+}
+
+
+void createShot(int posX, int posY, int length, int speed, int angle)
+{
+	double rad = pi/180 * (angle - 90);
+
+	for(int i = 0; i < (sizeof(gun1) / sizeof(gun1[0])); i++)
+	{
+		if(gun1[i].exists == FALSE && update_shoot >= 10)
+		{
+			gunShot = (gunShot % 3);
+			gun1[gunShot].x = posX;
+			gun1[gunShot].y = posY;
+			gun1[gunShot].speed = speed;
+			gun1[gunShot].moveX = length * cos(rad) * -1;
+			gun1[gunShot].moveY = length * sin(rad) * -1;
+			gun1[gunShot].exists = TRUE;
+			gunShot++;
+			update_shoot = 0;
+			return;
+		}
+	}
+}
+void shootGun1()
+{
+	for(int i = 0; i < (sizeof(gun1) / sizeof(gun1[0])); i++)
+		{
+			moveShot(&gun1[i]);
+		}
+}
+
+void moveShot(struct GunShot *a)
+{
+	struct GunShot tempo = *a;
+	drawLine(tempo.x, tempo.y, tempo.x + tempo.moveX, tempo.y + tempo.moveY, COLOR_BLACK);
+	if(tempo.exists == TRUE)
+	{
+		if(((tempo.x  + tempo.moveX ) < 640 && (tempo.x  + tempo.moveX ) > 0) && ((tempo.y  + tempo.moveY ) < 480 && (tempo.y  + tempo.moveY) > 0))
+		{
+			tempo.x += tempo.moveX;
+			tempo.y += tempo.moveY;
+			drawLine(tempo.x, tempo.y, tempo.x + tempo.moveX, tempo.y + tempo.moveY, COLOR_GREEN);
+			int8_t collided = detectLaserCollision(tempo.x + tempo.moveX, tempo.y + tempo.moveY);
+			if(collided > 0)
+			{
+				tempo.exists = FALSE;
+				drawLine(tempo.x, tempo.y, tempo.x + tempo.moveX, tempo.y + tempo.moveY, COLOR_BLACK);
+				//spawnSmallerAsteroids(collided);
+
+			}
+		}
+		else
+		{
+			tempo.exists = FALSE;
+		}
+	}
+	*a = tempo;
+}
+
+int8_t detectLaserCollision(int x, int y)
+{
+	for(int i = 0; i < asteroidArraySize; i++)
+	{
+		if(asteroidArray[i].alive == TRUE)
+		{
+			int deltaX = abs(x - asteroidArray[i].x);
+			int deltaY = abs(y - asteroidArray[i].y);
+			if(deltaX > 100 || deltaY > 100)
+			{
+				continue;
+			}
+
+			int sqrDist = deltaX * deltaX + deltaY * deltaY;
+			int radius = (*(asteroidArray[i].size[0])) * (*(asteroidArray[i].size[0]));
+			if(sqrDist <= radius)
+			{
+				destroyAsteroid(&asteroidArray[i]);
+				return *asteroidArray[i].size[0];
+			}
+		}
+	}
+	return FALSE;
+}
+
+
+void destroyAsteroid(struct Asteroid *a)
+{
+	a->alive = FALSE;
+	drawCircle(a->x, a->y, a->size, COLOR_BLACK);
+}
+
+
+/*void spawnSmallerAsteroids(int8_t size)
+{
+	if(size == 100)
+		{
+			for(int i = 0; i < 1; i++)
+			{
+				for(int i = 0; i < asteroidArraySize; i++)
+				{
+					if(asteroidArray[i].alive == FALSE)
+					{
+						SpawnAsteroid(&asteroidArray[i], LARGE);
+						break;
+					}
+				}
+			}
+		}
+		else if(size == 60)
+		{
+			for(int i = 0; i < 1; i++)
+			{
+				for(int i = 0; i < asteroidArraySize; i++)
+				{
+					if(asteroidArray[i].alive == FALSE)
+					{
+						SpawnAsteroid(&asteroidArray[i], MEDIUM);
+						break;
+					}
+				}
+			}
+		}
+		else if(size == 40)
+		{
+			for(int i = 0; i < 1; i++)
+			{
+				for(int i = 0; i < asteroidArraySize; i++)
+				{
+					if(asteroidArray[i].alive == FALSE)
+					{
+						SpawnAsteroid(&asteroidArray[i], SMALL);
+						break;
+					}
+				}
+			}
+		}
+}*/
+
+

@@ -41,6 +41,7 @@ void MoveAsteroidWithoutBounce(struct Asteroid *a);
 char collisionDetection (struct Asteroid *a,int x, int y, int length, int angle);
 void collisionDetectionShot (struct Asteroid *a,int x, int y);
 void destroyAsteroid(struct Asteroid *a);
+void spawnSmallerAsteroidSingle(struct Asteroid *a, unsigned char size, unsigned char seed, unsigned int x, unsigned int y);
 
 
 #endif /* SRC_ASTEROID_H_ */

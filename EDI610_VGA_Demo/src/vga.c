@@ -153,3 +153,4 @@ void drawLine(int startX, int startY, int endX, int endY, unsigned char color)
 void clearScreen(unsigned char bgColor){
 	drawSquare(0,0,VGA_WIDTH-1,VGA_HEIGHT-1, bgColor);
 }
+

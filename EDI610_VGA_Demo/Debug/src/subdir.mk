@@ -14,7 +14,7 @@ C_SRCS += \
 ../src/displays.c \
 ../src/interrupt_controller.c \
 ../src/main.c \
-../src/random.c \
+../src/numerals.c \
 ../src/timer.c \
 ../src/vga.c 
 
@@ -24,7 +24,7 @@ OBJS += \
 ./src/interrupt_controller.o \
 ./src/main.o \
 ./src/microBlaze.o \
-./src/random.o \
+./src/numerals.o \
 ./src/timer.o \
 ./src/vga.o 
 
@@ -33,7 +33,7 @@ C_DEPS += \
 ./src/displays.d \
 ./src/interrupt_controller.d \
 ./src/main.d \
-./src/random.d \
+./src/numerals.d \
 ./src/timer.d \
 ./src/vga.d 
 

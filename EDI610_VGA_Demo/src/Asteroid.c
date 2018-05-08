@@ -39,10 +39,10 @@ void SpawnAsteroid(struct Asteroid *a, unsigned char seed, unsigned int x, unsig
 	if(seed % 100 <= 25){
 		tempo.size = &AsteroidSmall;
 		tempo.speed = 10;
-	}else if((seed % 100 <= 50) && (seed % 100 >= 25)){
+	}else if((seed % 100 <= 50)){
 		tempo.size = &AsteroidMedium;
 		tempo.speed = 6;
-	}else if((seed % 100 <= 75) && (seed % 100 >= 50)){
+	}else if((seed % 100 <= 75)){
 		tempo.size = &AsteroidLarge;
 		tempo.speed = 4;
 	}else{
@@ -177,6 +177,30 @@ void collisionDetectionShot (struct Asteroid *a,int x, int y){
 		}
 	}
 }
+
+
+void spawnSmallerAsteroidSingle(struct Asteroid *a, unsigned char size, unsigned char seed, unsigned int x, unsigned int y)
+{
+	struct Asteroid tempo = *a;
+	if(RADIUS_LARGE == size){
+		tempo.size = &AsteroidLarge;
+		tempo.speed = 4;
+	}else if(RADIUS_MEDIUM == size){
+		tempo.size = &AsteroidMedium;
+		tempo.speed = 6;
+	}else if(RADIUS_SMALL == size){
+		tempo.size = &AsteroidSmall;
+		tempo.speed = 10;
+	}
+	tempo.y = y;
+	tempo.x = x;
+	tempo.moveAngle = (seed % 360);
+	tempo.moveX = tempo.speed * cos(tempo.moveAngle);
+	tempo.moveY = tempo.speed * sin(tempo.moveAngle);
+	tempo.alive = TRUE;
+	*a = tempo;
+}
+
 
 
 //void destroyAsteroid(struct Asteroid *a)

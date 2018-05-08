@@ -42,6 +42,7 @@
 #include "timers.h"
 #include "Asteroid.h"
 #include "math.h"
+#include "numerals.h"
 #define TRUE	1
 #define FALSE	0
 #define START   0
@@ -58,10 +59,16 @@ unsigned int keyCode = 0;
 int angle = 0, old_angle = 0;
 unsigned int old_keyCode;
 char  speed = 0, acc = 3, maxSpeed = 12, numberOfAstroids;
-unsigned char up, down, left, right, reset = 0,nbrOfAstroids = 0, max_nbrOfAstroids;
+unsigned char up, down, left, right, enter, reset = 0,nbrOfAstroids = 0, max_nbrOfAstroids;
 struct GunShot gun1[3];
 int gunShot = 0;
 char update_shoot = FALSE;
+char const title[] = {'a','s','t','r', 'o','i','d','s'};
+char const newGame[] = {'n','e','w',' ', 'g','a','m','e'};
+char const leaderboard[] = {'l','e','a','d', 'e','r','b','o','a','r','d'};
+char const gameOver[] = {'g','a','m','e', ' ','o','v','e','r'};
+unsigned char currentButton = 0, oldButton = 1;
+int seed;
 
 struct Asteroid asteroidArray[500];
 int asteroidArraySize;
@@ -88,9 +95,10 @@ void updateAstroids();
 
 int main(void){
 	setup();
-	initTimer1(4900000);
+	initTimer1(5900000);
 	enableTimer1();
 	initTimer2(100000000);
+
 	while(1==1){
 		if(update_screen == TRUE){
 			if(reset == TRUE){
@@ -104,23 +112,48 @@ int main(void){
 				updateAstroids();
 				shootGun1();
 			}else if(current_screen == START){
-				drawSquare(0,0,640,100,COLOR_WHITE);
-				drawSquare(235,209,285,210,COLOR_WHITE);
-				drawSquare(295,209,345,210,COLOR_WHITE);
-				drawSquare(355,209,405,210,COLOR_WHITE);
-				drawSquare(50,300,55,300,COLOR_WHITE);
-				drawSquare(57,300,62,300,COLOR_WHITE);
-				drawSquare(64,300,69,300,COLOR_WHITE);
-				drawSquare(73,296,73,297,COLOR_WHITE);
-				drawSquare(73,293,73,294,COLOR_WHITE);
-				drawSquare(77,290,200,300,COLOR_WHITE);
-				if(up == TRUE){
-					game_setup();
-					current_screen = GAME;
-					enableTimer2();
+				drawString(title, 8, 110, 65, 100, COLOR_WHITE);
+				if(oldButton != currentButton){
+					oldButton = currentButton;
+					if(currentButton == 0){
+						drawSquare(175,295,430,335,COLOR_BLACK);
+						drawSquare(205,245,390,285,COLOR_WHITE);
+						drawString(newGame, 8, 30, 210, 250, COLOR_BLACK);
+						drawString(leaderboard, 11, 30, 180, 300, COLOR_WHITE);
+						if(right == 1){
+
+						}
+					}else{
+						drawSquare(205,245,390,285,COLOR_BLACK);
+						drawSquare(175,295,430,335,COLOR_WHITE);
+						drawString(newGame, 8, 30, 210, 250, COLOR_WHITE);
+						drawString(leaderboard, 11, 30, 180, 300, COLOR_BLACK);
+						if(enter == 1){
+							enter = 0;
+						}
+					}
+				}
+				if(up == TRUE && currentButton > 0){
+					oldButton = currentButton;
+					currentButton --;
+				}else if(down == TRUE && currentButton < 1){
+					oldButton = currentButton;
+					currentButton ++;
+				}else if(enter == TRUE){
+					if(currentButton == 0){
+						current_screen = GAME;
+						reset = TRUE;
+						enter = 0;
+					}else{
+
+					}
 				}
 			}else{
-				drawSquare(220,140,420,340,COLOR_RED);
+				drawString(gameOver, 9, 100, 55, 80, COLOR_WHITE);
+				drawSquare(200,400,250,395,COLOR_WHITE);
+				drawSquare(255,400,305,395,COLOR_WHITE);
+				drawSquare(360,400,410,395,COLOR_WHITE);
+
 				if(down == TRUE){
 					clearScreen(COLOR_BLACK);
 					setup();
@@ -159,6 +192,10 @@ void game_setup(){
 		gun1[i].exists = FALSE;
 	}
 
+	for(int i = 0; i < asteroidArraySize; i++)
+	{
+		asteroidArray[i].alive = FALSE;
+	}
 //	int pos = 0;
 //	for(int i = 0; i <= numberOfAstroids; i++)
 //		{
@@ -258,8 +295,7 @@ void keyboardInterruptHandler(){
 			{
 				up = 0;
 			}
-		}
-		if(keyCode == 0x72)
+		}else if(keyCode == 0x72)
 		{
 			if(old_keyCode != 0xf0)
 			{
@@ -268,8 +304,7 @@ void keyboardInterruptHandler(){
 			{
 				down = 0;
 			}
-		}
-		if(keyCode == 0x74)
+		}else if(keyCode == 0x74)
 		{
 
 			if(old_keyCode != 0xf0)
@@ -279,8 +314,7 @@ void keyboardInterruptHandler(){
 			{
 				right = 0;
 			}
-		}
-		if(keyCode == 0x6B)
+		}else if(keyCode == 0x6B)
 		{
 			if(old_keyCode != 0xf0)
 			{
@@ -289,13 +323,18 @@ void keyboardInterruptHandler(){
 			{
 				left = 0;
 			}
-		}
-		if(keyCode == 0x1d)
+		}else if(keyCode == 0x1d)
 		{
 			if(old_keyCode == 0xf0)
 			{
 				keyboardPressForShot();
 
+			}
+		}else if(keyCode == 0x5a){
+			if(old_keyCode != 0xf0){
+				enter = 1;
+			}else{
+				enter = 0;
 			}
 		}
 
@@ -410,7 +449,6 @@ void ISR_timer1() {
 //
 //}
 void ISR_timer2() {
-	int seed;
 	if(nbrOfAstroids < max_nbrOfAstroids){
 		do{ // denna whilen fungerar rätt dåligt
 			seed = *TIMER1_CR % *TIMER2_CR;
@@ -425,21 +463,25 @@ void ISR_timer2() {
 }
 
 void updateAstroids(){
-	for(int i = 0; i < nbrOfAstroids; i++)
+	for(int i = 0; i < asteroidArraySize; i++)
 	{
-		MoveAsteroid(&asteroidArray[i]);
-//		MoveAsteroidWithoutBounce(&asteroidArray[i]);
-		if(collisionDetection(&asteroidArray[i],x,y,15,angle) == TRUE){
-			current_screen = LOSE;
-			clearScreen(COLOR_BLACK);
-			drawSquare(0,0,20,20,COLOR_RED);
-			break;
-		}
-		else{
-			drawSquare(0,0,20,20,COLOR_GREEN);
+		if(asteroidArray[i].alive == TRUE)
+		{
+			MoveAsteroid(&asteroidArray[i]);
+	//		MoveAsteroidWithoutBounce(&asteroidArray[i]);
+			if(collisionDetection(&asteroidArray[i],x,y,15,angle) == TRUE){
+				current_screen = LOSE;
+				clearScreen(COLOR_BLACK);
+				drawSquare(0,0,20,20,COLOR_RED);
+				break;
+			}
+			else{
+				drawSquare(0,0,20,20,COLOR_GREEN);
+			}
 		}
 	}
 }
+
 
 void keyboardPressForShot()
 {
@@ -491,11 +533,12 @@ void moveShot(struct GunShot *a)
 			tempo.y += tempo.moveY;
 			drawLine(tempo.x, tempo.y, tempo.x + tempo.moveX, tempo.y + tempo.moveY, COLOR_GREEN);
 			int8_t collided = detectLaserCollision(tempo.x + tempo.moveX, tempo.y + tempo.moveY);
-			if(collided > 0)
+
+			if(collided != 99)
 			{
 				tempo.exists = FALSE;
 				drawLine(tempo.x, tempo.y, tempo.x + tempo.moveX, tempo.y + tempo.moveY, COLOR_BLACK);
-				//spawnSmallerAsteroids(collided);
+				spawnSmallerAsteroids(collided);
 
 			}
 		}
@@ -506,6 +549,7 @@ void moveShot(struct GunShot *a)
 	}
 	*a = tempo;
 }
+
 
 int8_t detectLaserCollision(int x, int y)
 {
@@ -524,12 +568,13 @@ int8_t detectLaserCollision(int x, int y)
 			int radius = (*(asteroidArray[i].size[0])) * (*(asteroidArray[i].size[0]));
 			if(sqrDist <= radius)
 			{
+				asteroidArray[i].alive =FALSE;
 				destroyAsteroid(&asteroidArray[i]);
-				return *asteroidArray[i].size[0];
+				return i;
 			}
 		}
 	}
-	return FALSE;
+	return 99; //none found
 }
 
 
@@ -539,51 +584,30 @@ void destroyAsteroid(struct Asteroid *a)
 	drawCircle(a->x, a->y, a->size, COLOR_BLACK);
 }
 
-
-/*void spawnSmallerAsteroids(int8_t size)
+void spawnSmallerAsteroids(int8_t size)
 {
-	if(size == 100)
+	if(*asteroidArray[size].size[0] == 100)
 		{
-			for(int i = 0; i < 1; i++)
-			{
-				for(int i = 0; i < asteroidArraySize; i++)
+			spawnSmallerAsteroidSingle(&asteroidArray[size], RADIUS_LARGE, seed, asteroidArray[size].x, asteroidArray[size].y);
+
+				for(int j = 0; j < asteroidArraySize; j++)
 				{
-					if(asteroidArray[i].alive == FALSE)
+					if(asteroidArray[j].alive == FALSE)
 					{
-						SpawnAsteroid(&asteroidArray[i], LARGE);
+						spawnSmallerAsteroidSingle(&asteroidArray[j], RADIUS_LARGE, seed + 180 , asteroidArray[size].x, asteroidArray[size].y);
 						break;
 					}
 				}
-			}
 		}
-		else if(size == 60)
+		else if(*asteroidArray[size].size[0] == 60)
 		{
-			for(int i = 0; i < 1; i++)
-			{
-				for(int i = 0; i < asteroidArraySize; i++)
-				{
-					if(asteroidArray[i].alive == FALSE)
-					{
-						SpawnAsteroid(&asteroidArray[i], MEDIUM);
-						break;
-					}
-				}
-			}
+			spawnSmallerAsteroidSingle(&asteroidArray[size], RADIUS_MEDIUM, seed, asteroidArray[size].x, asteroidArray[size].y);
+
 		}
-		else if(size == 40)
+		else if(*asteroidArray[size].size[0] == 40)
 		{
-			for(int i = 0; i < 1; i++)
-			{
-				for(int i = 0; i < asteroidArraySize; i++)
-				{
-					if(asteroidArray[i].alive == FALSE)
-					{
-						SpawnAsteroid(&asteroidArray[i], SMALL);
-						break;
-					}
-				}
-			}
+			spawnSmallerAsteroidSingle(&asteroidArray[size], RADIUS_SMALL, seed, asteroidArray[size].x, asteroidArray[size].y);
 		}
-}*/
+}
 
 
